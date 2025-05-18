@@ -73,6 +73,13 @@
             <artifactId>spring-boot-devtools</artifactId>
             <optional>true</optional>
         </dependency>
+        
+        <dependency>
+           <groupId>com.google.code.gson</groupId>
+           <artifactId>gson</artifactId>
+           <version>2.11.0</version>
+        </dependency>
+
 
         <!-- Testing -->
         <dependency>
@@ -86,6 +93,12 @@
             <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
+    
+      <dependency>
+        <groupId>com.astralanguage</groupId>
+        <artifactId>astra-compiler</artifactId>
+        <version>1.4.4</version>
+      </dependency>
     </dependencies>
 
     <build>

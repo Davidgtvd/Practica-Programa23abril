@@ -5,7 +5,7 @@ import { TaskService } from 'Frontend/generated/endpoints';
 import { useSignal } from '@vaadin/hilla-react-signals';
 import handleError from 'Frontend/views/_ErrorHandler';
 import { Group, ViewToolbar } from 'Frontend/components/ViewToolbar';
-import Task from 'Frontend/generated/com/unl/music/taskmanagement/domain/Task';
+import Task from 'Frontend/generated/org/unl/music/taskmanagement/domain/Task';
 import { useDataProvider } from '@vaadin/hilla-react-crud';
 
 export const config: ViewConfig = {
@@ -35,14 +35,20 @@ function TaskEntryForm(props: TaskEntryFormProps) {
   const dueDate = useSignal<string | undefined>('');
   const createTask = async () => {
     try {
-      await TaskService.createTask(description.value, dueDate.value);
-      if (props.onTaskCreated) {
-        props.onTaskCreated();
+      if (description.value.trim().length > 0 && dueDate != undefined && dueDate.value.trim().length) {
+        await TaskService.createTask(description.value, dueDate.value);
+        if (props.onTaskCreated) {
+          props.onTaskCreated();
+        }
+        description.value = '';
+        dueDate.value = undefined;
+        Notification.show('Task added', { duration: 3000, position: 'bottom-end', theme: 'success' });
+      } else {
+        Notification.show('No se pudo crear, faltan datos', { duration: 3000, position: 'top-center', theme: 'error' });
       }
-      description.value = '';
-      dueDate.value = undefined;
-      Notification.show('Task added', { duration: 3000, position: 'bottom-end', theme: 'success' });
+
     } catch (error) {
+      console.log(error);
       handleError(error);
     }
   };
@@ -57,6 +63,7 @@ function TaskEntryForm(props: TaskEntryFormProps) {
         onValueChanged={(evt) => (description.value = evt.detail.value)}
       />
       <DatePicker
+
         placeholder="Due date"
         aria-label="Due date"
         value={dueDate.value}
