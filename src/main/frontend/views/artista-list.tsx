@@ -1,5 +1,5 @@
 import { ViewConfig } from '@vaadin/hilla-file-router/types.js';
-import { Button, ComboBox, DatePicker, Dialog, Grid, GridColumn, GridItemModel, TextField, VerticalLayout } from '@vaadin/react-components';
+import { Button, ComboBox, DatePicker, Dialog, Grid, GridColumn, GridItemModel, GridSortColumn, TextField, VerticalLayout } from '@vaadin/react-components';
 import { Notification } from '@vaadin/react-components/Notification';
 import { ArtistaService, TaskService } from 'Frontend/generated/endpoints';
 import { useSignal } from '@vaadin/hilla-react-signals';
@@ -20,11 +20,12 @@ export const config: ViewConfig = {
 };
 
 
+
 type ArtistaEntryFormProps = {
   onArtistaCreated?: () => void;
 };
 
-type ArtistaEntryFormPropsUpdate = ()=> {
+type ArtistaEntryFormPropsUpdate = () => {
   onArtistaUpdated?: () => void;
 };
 //GUARDAR ARTISTA
@@ -51,7 +52,7 @@ function ArtistaEntryForm(props: ArtistaEntryFormProps) {
       handleError(error);
     }
   };
-  
+
   let pais = useSignal<String[]>([]);
   useEffect(() => {
     ArtistaService.listCountry().then(data =>
@@ -80,39 +81,39 @@ function ArtistaEntryForm(props: ArtistaEntryFormProps) {
             <Button onClick={createArtista} theme="primary">
               Registrar
             </Button>
-            
+
           </>
         }
       >
         <VerticalLayout style={{ alignItems: 'stretch', width: '18rem', maxWidth: '100%' }}>
-          <TextField label="Nombre del artista" 
+          <TextField label="Nombre del artista"
             placeholder="Ingrese el nombre del artista"
             aria-label="Nombre del artista"
             value={nombre.value}
             onValueChanged={(evt) => (nombre.value = evt.detail.value)}
           />
-          <ComboBox label="Nacionalidad" 
+          <ComboBox label="Nacionalidad"
             items={pais.value}
             placeholder='Seleccione un pais'
             aria-label='Seleccione un pais de la lista'
             value={nacionalidad.value}
             onValueChanged={(evt) => (nacionalidad.value = evt.detail.value)}
-            />
+          />
         </VerticalLayout>
       </Dialog>
       <Button
-            onClick={() => {
-              dialogOpened.value = true;
-            }}
-          >
-            Agregar
-          </Button>
+        onClick={() => {
+          dialogOpened.value = true;
+        }}
+      >
+        Agregar
+      </Button>
     </>
   );
 }
 
 //GUARDAR ARTISTA
-const ArtistaEntryFormUpdate = function(props: ArtistaEntryFormPropsUpdate){//useCallback((props: ArtistaEntryFormPropsUpdate,{ item: art }: { item: Artista }) => {
+const ArtistaEntryFormUpdate = function (props: ArtistaEntryFormPropsUpdate) {//useCallback((props: ArtistaEntryFormPropsUpdate,{ item: art }: { item: Artista }) => {
   console.log(props);
   let pais = useSignal<String[]>([]);
   useEffect(() => {
@@ -142,8 +143,8 @@ const ArtistaEntryFormUpdate = function(props: ArtistaEntryFormPropsUpdate){//us
       handleError(error);
     }
   };
-  
-  
+
+
   const dialogOpened = useSignal(false);
   return (
     <>
@@ -166,36 +167,36 @@ const ArtistaEntryFormUpdate = function(props: ArtistaEntryFormPropsUpdate){//us
             <Button onClick={createArtista} theme="primary">
               Registrar
             </Button>
-            
+
           </>
         }
       >
         <VerticalLayout style={{ alignItems: 'stretch', width: '18rem', maxWidth: '100%' }}>
-          <TextField label="Nombre del artista" 
+          <TextField label="Nombre del artista"
             placeholder="Ingrese el nombre del artista"
             aria-label="Nombre del artista"
             value={nombre.value}
             onValueChanged={(evt) => (nombre.value = evt.detail.value)}
           />
-          <ComboBox label="Nacionalidad" 
+          <ComboBox label="Nacionalidad"
             items={pais.value}
             placeholder='Seleccione un pais'
             aria-label='Seleccione un pais de la lista'
             value={nacionalidad.value}
             defaultValue={nacionalidad.value}
-            
-            
+
+
             onValueChanged={(evt) => (nacionalidad.value = evt.detail.value)}
-            />
+          />
         </VerticalLayout>
       </Dialog>
       <Button
-            onClick={() => {
-              dialogOpened.value = true;
-            }}
-          >
-            Editar  
-          </Button>
+        onClick={() => {
+          dialogOpened.value = true;
+        }}
+      >
+        Editar
+      </Button>
     </>
   );
 };
@@ -203,26 +204,50 @@ const ArtistaEntryFormUpdate = function(props: ArtistaEntryFormPropsUpdate){//us
 
 //LISTA DE ARTISTAS
 export default function ArtistaView() {
+  const [items, setItems] = useState([]);
+  const callData = () => {
+    console.log("Hola call data");
+    ArtistaService.listAll().then(function(data){
+      //items.values = data;
+      setItems(data);
+    });
+  };
+  useEffect(() => {
+    callData();
+  },[]);
   
-  const dataProvider = useDataProvider<Artista>({
+  
+  /*let dataProvider = useDataProvider<Artista>({
     list: () => ArtistaService.listAll(),
-  });
+  });*/
 
-  function indexLink({ item}: { item: Artista }) {
-   
+  const order = (event, columnId) => {
+    console.log(event);
+    const direction = event.detail.value;
+    // Custom logic based on the sorting direction
+    console.log(`Sort direction changed for column ${columnId} to ${direction}`);
+
+    var dir = (direction == 'asc') ? 1 : 2;
+    ArtistaService.order(columnId, dir).then(function (data) {
+      setItems(data);
+    });  
+  }
+
+  function indexLink({ item }: { item: Artista }) {
+
     return (
       <span>
-        <ArtistaEntryFormUpdate arguments={item} onArtistaUpdated={dataProvider.refresh}>
-          
-          </ArtistaEntryFormUpdate> 
+        <ArtistaEntryFormUpdate  arguments={item}  onArtistaUpdated={callData}>
+
+        </ArtistaEntryFormUpdate>
       </span>
     );
   }
 
-  function indexIndex({model}:{model:GridItemModel<Artista>}) {
+  function indexIndex({ model }: { model: GridItemModel<Artista> }) {
     return (
       <span>
-        {model.index + 1} 
+        {model.index + 1}
       </span>
     );
   }
@@ -233,17 +258,18 @@ export default function ArtistaView() {
 
       <ViewToolbar title="Lista de artista">
         <Group>
-          <ArtistaEntryForm onArtistaCreated={dataProvider.refresh}/>
+          <ArtistaEntryForm onArtistaCreated={callData}/>
         </Group>
       </ViewToolbar>
-      <Grid dataProvider={dataProvider.dataProvider}>
-        <GridColumn  renderer={indexIndex} header="Nro" />
-        <GridColumn path="nombres" header="Nombre del artista" />
-        <GridColumn path="nacionidad" header="Nacionidad">
+      <Grid items={items}>
+        <GridColumn renderer={indexIndex} header="Nro" />
+        <GridSortColumn path="nombres" header="Nombre del artista" onDirectionChanged={(e) => order(e, 'nombres')} />
+        <GridSortColumn path="nacionidad" header="Nacionidad" onDirectionChanged={(e) => order(e, 'nacionalidad')} />
 
-        </GridColumn>
-        <GridColumn header="Acciones" renderer={indexLink}/>
+        
+        <GridColumn header="Acciones" renderer={indexLink} />
       </Grid>
+      
     </main>
   );
 }

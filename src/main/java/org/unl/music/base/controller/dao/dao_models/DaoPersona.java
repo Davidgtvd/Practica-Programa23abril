@@ -1,67 +1,50 @@
 package org.unl.music.base.controller.dao.dao_models;
 
 import org.unl.music.base.models.Persona;
-import org.unl.music.base.controller.data_struct.list.LinkedList;
 
-public class DaoPersona {
-    private static final LinkedList<Persona> personas = new LinkedList<>();
-    private static Integer lastId = 0;
+import org.unl.music.base.controller.dao.AdapterDao;
 
-    public LinkedList<Persona> listAll() {
-        return personas;
+public class DaoPersona extends AdapterDao<Persona> {
+    private Persona obj;
+
+    public DaoPersona() {
+        super(Persona.class);
+        // TODO Auto-generated constructor stub
     }
 
-    public Persona findById(Integer id) {
-        if (id == null) return null;
-        
-        for (int i = 0; i < personas.getLength(); i++) {
-            Persona persona = personas.get(i);
-            if (persona.getId().equals(id)) {
-                return persona;
-            }
-        }
-        return null;
+    public Persona getObj() {
+        if (obj == null)
+            this.obj = new Persona();
+        return this.obj;
     }
 
-    public Boolean save(Persona persona) {
+    public void setObj(Persona obj) {
+        this.obj = obj;
+    }
+
+    public Boolean save() {
         try {
-            lastId++;
-            persona.setId(lastId);
-            personas.add(persona);
+            obj.setId(listAll().getLength()+1);
+            this.persist(obj);
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            //TODO
             return false;
+            // TODO: handle exception
         }
     }
 
-    public Boolean update(Persona persona) {
+    public Boolean update(Integer pos) {
         try {
-            for (int i = 0; i < personas.getLength(); i++) {
-                if (personas.get(i).getId().equals(persona.getId())) {
-                    personas.update(persona, i);
-                    return true;
-                }
-            }
-            return false;
+            this.update(obj, pos);
+            return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            //TODO
             return false;
+            // TODO: handle exception
         }
     }
 
-    public Boolean delete(Integer id) {
-        try {
-            for (int i = 0; i < personas.getLength(); i++) {
-                if (personas.get(i).getId().equals(id)) {
-                    personas.delete(i);
-                    return true;
-                }
-            }
-            return false;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
+    
+
 }

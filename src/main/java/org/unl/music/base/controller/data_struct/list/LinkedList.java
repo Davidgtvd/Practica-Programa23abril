@@ -7,7 +7,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.Comparator;
+import java.lang.reflect.Method;
+import java.lang.reflect.Field;
 
 public class LinkedList<E> implements Iterable<E> {
     private Node<E> head;
@@ -31,11 +33,7 @@ public class LinkedList<E> implements Iterable<E> {
     private Node<E> getNode(Integer pos) {
         if (isEmpty()) {
             throw new ArrayIndexOutOfBoundsException("List empty");
-            // System.out.println("Lista vacia");
-            // return null;
         } else if (pos < 0 || pos >= length) {
-            // System.out.println("Fuera de rango");
-            // return null;
             throw new ArrayIndexOutOfBoundsException("Index out range");
         } else if (pos == 0) {
             return head;
@@ -70,23 +68,6 @@ public class LinkedList<E> implements Iterable<E> {
 
     public E get(Integer pos) {
         return getNode(pos).getData();
-        /*
-         * if (isEmpty()) {
-         * throw new ArrayIndexOutOfBoundsException("List empty");
-         * // System.out.println("Lista vacia");
-         * // return null;
-         * } else if (pos < 0 || pos >= length) {
-         * // System.out.println("Fuera de rango");
-         * // return null;
-         * throw new ArrayIndexOutOfBoundsException("Index out range");
-         * }else if (pos == 0) {
-         * return getDataFirst();
-         * } else if (length.intValue() == pos.intValue()) {
-         * return getDataLast();
-         * } else {
-         * return getNode(pos).getData();
-         * }
-         */
     }
 
     private void addFirst(E data) {
@@ -111,7 +92,6 @@ public class LinkedList<E> implements Iterable<E> {
             last = aux;
             length++;
         }
-
     }
 
     public void add(E data, Integer pos) throws Exception {
@@ -139,7 +119,6 @@ public class LinkedList<E> implements Iterable<E> {
             StringBuilder resp = new StringBuilder();
             Node<E> help = head;
             while (help != null) {
-                // resp += help.getData()+" - ";
                 resp.append(help.getData()).append(" - ");
                 help = help.getNext();
             }
@@ -221,7 +200,6 @@ public class LinkedList<E> implements Iterable<E> {
     public E delete(Integer pos) throws Exception {
         if (isEmpty()) {
             throw new ArrayIndexOutOfBoundsException("List empty");
-
         } else if (pos < 0 || pos >= length) {
             throw new ArrayIndexOutOfBoundsException("Index out range");
         } else if (pos == 0) {
@@ -231,7 +209,7 @@ public class LinkedList<E> implements Iterable<E> {
         } else {
             Node<E> preview = getNode(pos - 1);
             Node<E> actualy = getNode(pos);
-            E element = preview.getData();
+            E element = actualy.getData();
             Node<E> next = actualy.getNext();
             actualy = null;
             preview.setNext(next);
@@ -239,15 +217,497 @@ public class LinkedList<E> implements Iterable<E> {
             return element;
         }
     }
-    public static void main(String[] args) {
-        // StackImplementation<Integer> si = new StackImplementation<>(5);
-        Stack<Integer> stack = new Stack<>(5);
 
+    //  MÉTODOS DE BÚSQUEDA 
+
+    /**
+     * Búsqueda genérica por atributo (tal como se vio en clases)
+     * @param atributo Nombre del atributo a buscar
+     * @param valor Valor a buscar
+     * @param tipo Tipo de búsqueda: 0=contiene, 1=inicia con, 2=termina con, 3=igual
+     * @return Lista con los resultados encontrados
+     */
+    public LinkedList<E> buscar(String atributo, Object valor, int tipo) {
+        LinkedList<E> resultado = new LinkedList<>();
+        
+        if (isEmpty() || atributo == null || valor == null) {
+            return resultado;
+        }
+
+        Node<E> current = head;
+        while (current != null) {
+            try {
+                Object dato = obtenerValorAtributo(current.getData(), atributo);
+                
+                if (dato != null) {
+                    boolean coincide = false;
+                    
+                    if (dato instanceof Number && valor instanceof Number) {
+                        coincide = compararNumeros((Number)dato, (Number)valor, tipo);
+                    } 
+                                       else if (dato instanceof String && valor instanceof String) {
+                        coincide = compararTexto((String)dato, (String)valor, tipo);
+                    }
+                                     else {
+                        coincide = dato.equals(valor);
+                    }
+                    
+                    if (coincide) {
+                        resultado.add(current.getData());
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Error al buscar por atributo '" + atributo + "': " + e.getMessage());
+            }
+            
+            current = current.getNext();
+        }
+        
+        return resultado;
     }
 
     /**
-     * Convierte la lista enlazada a una List de Java
+     * Búsqueda con medición de tiempo y estadísticas
+     * @param atributo Nombre del atributo
+     * @param valor Valor a buscar
+     * @param tipo Tipo de búsqueda
+     * @return Resultado con estadísticas
      */
+    public SearchResult buscarConEstadisticas(String atributo, Object valor, int tipo) {
+        long startTime = System.nanoTime();
+        int comparaciones = 0;
+        LinkedList<E> resultados = new LinkedList<>();
+        
+        if (isEmpty() || atributo == null || valor == null) {
+            long endTime = System.nanoTime();
+            return new SearchResult(-1, endTime - startTime, comparaciones, "Búsqueda Genérica", resultados);
+        }
+
+        Node<E> current = head;
+        int index = 0;
+        int primerIndice = -1;
+        
+        while (current != null) {
+            try {
+                Object dato = obtenerValorAtributo(current.getData(), atributo);
+                comparaciones++;
+                
+                if (dato != null) {
+                    boolean coincide = false;
+                    
+                    if (dato instanceof Number && valor instanceof Number) {
+                        coincide = compararNumeros((Number)dato, (Number)valor, tipo);
+                    } else if (dato instanceof String && valor instanceof String) {
+                        coincide = compararTexto((String)dato, (String)valor, tipo);
+                    } else {
+                        coincide = dato.equals(valor);
+                    }
+                    
+                    if (coincide) {
+                        if (primerIndice == -1) {
+                            primerIndice = index;
+                        }
+                        resultados.add(current.getData());
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Error en búsqueda: " + e.getMessage());
+            }
+            
+            current = current.getNext();
+            index++;
+        }
+        
+        long endTime = System.nanoTime();
+        return new SearchResult(primerIndice, endTime - startTime, comparaciones, "Búsqueda Genérica", resultados);
+    }
+
+    /**
+     * Obtiene el valor de un atributo usando reflexión
+     * @param objeto Objeto del cual obtener el atributo
+     * @param atributo Nombre del atributo
+     * @return Valor del atributo o null si no se encuentra
+     * @throws Exception Si ocurre un error al acceder al atributo
+     */
+    private Object obtenerValorAtributo(E objeto, String atributo) throws Exception {
+        if (objeto == null || atributo == null) {
+            return null;
+        }
+        
+        try {
+                    String getterName = "get" + capitalize(atributo);
+            Method getter = objeto.getClass().getMethod(getterName);
+            return getter.invoke(objeto);
+        } catch (NoSuchMethodException e1) {
+            try {
+                // Intentar con field directo
+                Field field = objeto.getClass().getDeclaredField(atributo);
+                field.setAccessible(true);
+                return field.get(objeto);
+            } catch (NoSuchFieldException e2) {
+                // Intentar con is para boolean
+                try {
+                    String isGetterName = "is" + capitalize(atributo);
+                    Method isGetter = objeto.getClass().getMethod(isGetterName);
+                    return isGetter.invoke(objeto);
+                } catch (NoSuchMethodException e3) {
+                    throw new Exception("No se encontró el atributo: " + atributo);
+                }
+            }
+        }
+    }
+
+    /**
+     * Compara números según el tipo especificado
+     */
+    private boolean compararNumeros(Number dato, Number valor, int tipo) {
+        double d1 = dato.doubleValue();
+        double d2 = valor.doubleValue();
+        
+        switch (tipo) {
+            case 0: return d1 == d2; 
+            case 1: return d1 > d2;  
+            case 2: return d1 < d2;  
+            case 3: return d1 >= d2; 
+            case 4: return d1 <= d2; 
+            default: return d1 == d2;
+        }
+    }
+
+    /**
+     * Compara texto según el tipo especificado
+     */
+    private boolean compararTexto(String dato, String valor, int tipo) {
+        String datoStr = dato.toLowerCase();
+        String valorStr = valor.toLowerCase();
+        
+        switch (tipo) {
+            case 0: return datoStr.contains(valorStr);    // contiene
+            case 1: return datoStr.startsWith(valorStr);  // inicia con
+            case 2: return datoStr.endsWith(valorStr);    // termina con
+            case 3: return datoStr.equals(valorStr);      // igual
+            default: return datoStr.contains(valorStr);
+        }
+    }
+
+
+    /**
+     * Ordena la lista por un atributo específico usando QuickSort
+     * @param atributo Nombre del atributo por el cual ordenar
+     * @param ascendente true para ascendente, false para descendente
+     * @return Tiempo de ejecución en nanosegundos
+     */
+    public long ordenarPorAtributo(String atributo, boolean ascendente) {
+        if (isEmpty() || length <= 1 || atributo == null) {
+            return 0;
+        }
+        
+        long startTime = System.nanoTime();
+        
+        Comparator<E> comparador = (obj1, obj2) -> {
+            try {
+                Object valor1 = obtenerValorAtributo(obj1, atributo);
+                Object valor2 = obtenerValorAtributo(obj2, atributo);
+                
+                if (valor1 == null && valor2 == null) return 0;
+                if (valor1 == null) return ascendente ? -1 : 1;
+                if (valor2 == null) return ascendente ? 1 : -1;
+                
+                int resultado = 0;
+                
+                if (valor1 instanceof Comparable && valor2 instanceof Comparable) {
+                    resultado = ((Comparable)valor1).compareTo(valor2);
+                } else if (valor1 instanceof Number && valor2 instanceof Number) {
+                    double d1 = ((Number)valor1).doubleValue();
+                    double d2 = ((Number)valor2).doubleValue();
+                    resultado = Double.compare(d1, d2);
+                } else {
+                    resultado = valor1.toString().compareToIgnoreCase(valor2.toString());
+                }
+                
+                return ascendente ? resultado : -resultado;
+                
+            } catch (Exception e) {
+                System.err.println("Error en comparación: " + e.getMessage());
+                return 0;
+            }
+        };
+        
+        quickSort(comparador);
+        
+        long endTime = System.nanoTime();
+        return endTime - startTime;
+    }
+
+    /**
+     * Ordena usando ShellSort por atributo
+     */
+    public long shellSortPorAtributo(String atributo, boolean ascendente) {
+        if (isEmpty() || length <= 1 || atributo == null) {
+            return 0;
+        }
+        
+        long startTime = System.nanoTime();
+        
+        Comparator<E> comparador = (obj1, obj2) -> {
+            try {
+                Object valor1 = obtenerValorAtributo(obj1, atributo);
+                Object valor2 = obtenerValorAtributo(obj2, atributo);
+                
+                if (valor1 == null && valor2 == null) return 0;
+                if (valor1 == null) return ascendente ? -1 : 1;
+                if (valor2 == null) return ascendente ? 1 : -1;
+                
+                int resultado = 0;
+                
+                if (valor1 instanceof Comparable && valor2 instanceof Comparable) {
+                    resultado = ((Comparable)valor1).compareTo(valor2);
+                } else if (valor1 instanceof Number && valor2 instanceof Number) {
+                    double d1 = ((Number)valor1).doubleValue();
+                    double d2 = ((Number)valor2).doubleValue();
+                    resultado = Double.compare(d1, d2);
+                } else {
+                    resultado = valor1.toString().compareToIgnoreCase(valor2.toString());
+                }
+                
+                return ascendente ? resultado : -resultado;
+                
+            } catch (Exception e) {
+                System.err.println("Error en comparación: " + e.getMessage());
+                return 0;
+            }
+        };
+        
+        shellSort(comparador);
+        
+        long endTime = System.nanoTime();
+        return endTime - startTime;
+    }
+
+
+    /**
+     * Ordena la lista usando QuickSort
+     */
+    public long quickSort(Comparator<E> comparator) {
+        if (isEmpty() || length <= 1) {
+            return 0;
+        }
+        
+        long startTime = System.nanoTime();
+        
+        E[] array = toArray();
+        quickSortRecursive(array, 0, array.length - 1, comparator);
+        toList(array);
+        
+        long endTime = System.nanoTime();
+        return endTime - startTime;
+    }
+
+    private void quickSortRecursive(E[] array, int low, int high, Comparator<E> comparator) {
+        if (low < high) {
+            int pivotIndex = partition(array, low, high, comparator);
+            quickSortRecursive(array, low, pivotIndex - 1, comparator);
+            quickSortRecursive(array, pivotIndex + 1, high, comparator);
+        }
+    }
+
+    private int partition(E[] array, int low, int high, Comparator<E> comparator) {
+        E pivot = array[high];
+        int i = low - 1;
+
+        for (int j = low; j < high; j++) {
+            if (comparator.compare(array[j], pivot) <= 0) {
+                i++;
+                swap(array, i, j);
+            }
+        }
+        swap(array, i + 1, high);
+        return i + 1;
+    }
+
+    /**
+     * Ordena la lista usando ShellSort
+     */
+    public long shellSort(Comparator<E> comparator) {
+        if (isEmpty() || length <= 1) {
+            return 0;
+        }
+        
+        long startTime = System.nanoTime();
+        
+        E[] array = toArray();
+        int n = array.length;
+
+        for (int gap = n / 2; gap > 0; gap /= 2) {
+            for (int i = gap; i < n; i++) {
+                E temp = array[i];
+                int j;
+                
+                for (j = i; j >= gap && comparator.compare(array[j - gap], temp) > 0; j -= gap) {
+                    array[j] = array[j - gap];
+                }
+                array[j] = temp;
+            }
+        }
+
+        toList(array);
+        
+        long endTime = System.nanoTime();
+        return endTime - startTime;
+    }
+
+    private void swap(E[] array, int i, int j) {
+        E temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+
+
+    public SearchResult linearSearch(E target, Comparator<E> comparator) {
+        long startTime = System.nanoTime();
+        int comparisons = 0;
+        
+        Node<E> current = head;
+        int index = 0;
+        
+        while (current != null) {
+            comparisons++;
+            if (comparator.compare(current.getData(), target) == 0) {
+                long endTime = System.nanoTime();
+                LinkedList<E> resultado = new LinkedList<>();
+                resultado.add(current.getData());
+                return new SearchResult(index, endTime - startTime, comparisons, "Linear Search", resultado);
+            }
+            current = current.getNext();
+            index++;
+        }
+        
+        long endTime = System.nanoTime();
+        return new SearchResult(-1, endTime - startTime, comparisons, "Linear Search", new LinkedList<>());
+    }
+
+    public SearchResult binarySearch(E target, Comparator<E> comparator) {
+        long startTime = System.nanoTime();
+        int comparisons = 0;
+        
+        if (isEmpty()) {
+            long endTime = System.nanoTime();
+            return new SearchResult(-1, endTime - startTime, comparisons, "Binary Search", new LinkedList<>());
+        }
+        
+        E[] array = toArray();
+        int left = 0;
+        int right = array.length - 1;
+        
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            comparisons++;
+            
+            int comparison = comparator.compare(array[mid], target);
+            
+            if (comparison == 0) {
+                long endTime = System.nanoTime();
+                LinkedList<E> resultado = new LinkedList<>();
+                resultado.add(array[mid]);
+                return new SearchResult(mid, endTime - startTime, comparisons, "Binary Search", resultado);
+            } else if (comparison < 0) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+        
+        long endTime = System.nanoTime();
+        return new SearchResult(-1, endTime - startTime, comparisons, "Binary Search", new LinkedList<>());
+    }
+
+    public SearchResult smartSearch(E target, Comparator<E> comparator, boolean isOrdered) {
+        if (isOrdered && length > 10) {
+            return binarySearch(target, comparator);
+        } else {
+            return linearSearch(target, comparator);
+        }
+    }
+
+    public static class SearchResult {
+        private final int index;
+        private final long executionTime;
+        private final int comparisons;
+        private final String method;
+        private final LinkedList<?> results;
+
+        public SearchResult(int index, long executionTime, int comparisons, String method, LinkedList<?> results) {
+            this.index = index;
+            this.executionTime = executionTime;
+            this.comparisons = comparisons;
+            this.method = method;
+            this.results = results;
+        }
+
+        public SearchResult(int index, long executionTime, int comparisons, String method) {
+            this(index, executionTime, comparisons, method, new LinkedList<>());
+        }
+
+        public int getIndex() { return index; }
+        public long getExecutionTime() { return executionTime; }
+        public int getComparisons() { return comparisons; }
+        public String getMethod() { return method; }
+        public boolean isFound() { return index != -1; }
+        public LinkedList<?> getResults() { return results; }
+        public int getResultCount() { return results.getLength(); }
+
+        @Override
+        public String toString() {
+            return String.format("SearchResult{method='%s', found=%s, index=%d, results=%d, time=%d ns, comparisons=%d}", 
+                               method, isFound(), index, getResultCount(), executionTime, comparisons);
+        }
+    }
+
+
+    private String capitalize(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
+    public boolean isSorted(Comparator<E> comparator) {
+        if (isEmpty() || length <= 1) {
+            return true;
+        }
+        
+        Node<E> current = head;
+        while (current.getNext() != null) {
+            if (comparator.compare(current.getData(), current.getNext().getData()) > 0) {
+                return false;
+            }
+            current = current.getNext();
+        }
+        return true;
+    }
+
+    public void generateRandomData(int count, Function<Integer, E> generator) {
+        clear();
+        for (int i = 0; i < count; i++) {
+            add(generator.apply(i));
+        }
+    }
+
+    public LinkedList<E> copy() {
+        LinkedList<E> newList = new LinkedList<>();
+        Node<E> current = head;
+        while (current != null) {
+            newList.add(current.getData());
+            current = current.getNext();
+        }
+        return newList;
+    }
+
+
+    public static void main(String[] args) {
+        Stack<Integer> stack = new Stack<>(5);
+    }
+
     public List<E> toJavaList() {
         List<E> list = new ArrayList<>();
         Node<E> current = head;
@@ -258,9 +718,6 @@ public class LinkedList<E> implements Iterable<E> {
         return list;
     }
 
-    /**
-     * Encuentra un elemento que cumpla con el predicado dado
-     */
     public E find(Function<E, Boolean> predicate) {
         Node<E> current = head;
         while (current != null) {
@@ -272,9 +729,6 @@ public class LinkedList<E> implements Iterable<E> {
         return null;
     }
 
-    /**
-     * Implementación del método iterator() para poder usar forEach
-     */
     @Override
     public Iterator<E> iterator() {
         return new Iterator<E>() {
@@ -294,9 +748,6 @@ public class LinkedList<E> implements Iterable<E> {
         };
     }
 
-    /**
-     * Método para convertir todos los elementos usando una función
-     */
     public <R> List<R> map(Function<E, R> mapper) {
         List<R> result = new ArrayList<>();
         for (E item : this) {
@@ -305,9 +756,6 @@ public class LinkedList<E> implements Iterable<E> {
         return result;
     }
 
-    /**
-     * Método para filtrar elementos
-     */
     public LinkedList<E> filter(Function<E, Boolean> predicate) {
         LinkedList<E> result = new LinkedList<>();
         for (E item : this) {
@@ -318,16 +766,10 @@ public class LinkedList<E> implements Iterable<E> {
         return result;
     }
 
-    /**
-     * Método para verificar si la lista contiene un elemento que cumpla con el predicado
-     */
     public boolean contains(Function<E, Boolean> predicate) {
         return find(predicate) != null;
     }
 
-    /**
-     * Método para actualizar un elemento que cumpla con el predicado
-     */
     public boolean updateIf(Function<E, Boolean> predicate, E newData) {
         Node<E> current = head;
         int pos = 0;
@@ -342,9 +784,6 @@ public class LinkedList<E> implements Iterable<E> {
         return false;
     }
 
-    /**
-     * Método para eliminar un elemento que cumpla con el predicado
-     */
     public boolean removeIf(Function<E, Boolean> predicate) {
         Node<E> current = head;
         int pos = 0;
@@ -363,28 +802,17 @@ public class LinkedList<E> implements Iterable<E> {
         return false;
     }
 
-
-    /**
-     * Método para obtener el tamaño de la lista
-     */
     public int size() {
         return length;
     }
 
-    /**
-     * Método para convertir la lista a una colección
-     */
     public Collection<E> toCollection() {
         return toJavaList();
     }
 
-    /**
-     * Método para buscar por ID (útil para entidades)
-     */
     public E findById(Integer id) {
         return find(item -> {
             try {
-                // Asumimos que el objeto tiene un método getId()
                 return ((Object)item).getClass().getMethod("getId").invoke(item).equals(id);
             } catch (Exception e) {
                 return false;

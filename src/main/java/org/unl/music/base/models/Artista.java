@@ -28,5 +28,9 @@ public class Artista {
     public void setNacionidad(String nacionidad) {
         this.nacionidad = nacionidad;
     }
-
+    @Override
+    public String toString() {
+        // TODO Auto-generated method stub
+        return nombres;
+    }
 }

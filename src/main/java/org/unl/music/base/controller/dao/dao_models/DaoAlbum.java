@@ -1,40 +1,71 @@
 package org.unl.music.base.controller.dao.dao_models;
 
 import org.unl.music.base.models.Album;
-import org.unl.music.base.controller.data_struct.list.LinkedList;
 
-public class DaoAlbum {
-    private static final LinkedList<Album> albums = new LinkedList<>();
-    private static Integer lastId = 0;
+import java.util.Date;
 
-    public LinkedList<Album> listAll() {
-        return albums;
+import org.unl.music.base.controller.dao.AdapterDao;
+
+public class DaoAlbum extends AdapterDao<Album> {
+    private Album obj;
+
+    public DaoAlbum() {
+        super(Album.class);
+        // TODO Auto-generated constructor stub
     }
 
-    public Album findById(Integer id) {
-        if (id == null) return null;
-        for (int i = 0; i < albums.getLength(); i++) {
-            Album album = albums.get(i);
-            if (album.getId().equals(id)) {
-                return album;
-            }
-        }
-        return null;
+    public Album getObj() {
+        if (obj == null)
+            this.obj = new Album();
+        return this.obj;
     }
 
-    public Boolean save(Album album) {
+    public void setObj(Album obj) {
+        this.obj = obj;
+    }
+
+    public Boolean save() {
         try {
-            lastId++;
-            album.setId(lastId);
-            albums.add(album);
+            obj.setId(listAll().getLength()+1);
+            this.persist(obj);
             return true;
         } catch (Exception e) {
+            //TODO
             return false;
+            // TODO: handle exception
         }
     }
 
-    public Album[] toArray() {
-        return albums.toArray();
+    public Boolean update(Integer pos) {
+        try {
+            this.update(obj, pos);
+            return true;
+        } catch (Exception e) {
+            //TODO
+            return false;
+            // TODO: handle exception
+        }
     }
-    
+
+    public static void main(String[] args) {
+        DaoAlbum da = new DaoAlbum();
+        
+        da.getObj().setNombre("Queens");
+        da.getObj().setId_banda(1);
+        da.getObj().setFecha(new Date());
+        
+        if (da.save())
+            System.out.println("GUARDADO");
+        else
+            System.out.println("Hubo un error");
+        da.setObj(null);
+        da.getObj().setNombre("El loco de tercero");
+        da.getObj().setId_banda(3);
+        da.getObj().setFecha(new Date());
+        if (da.save())
+            System.out.println("GUARDADO");
+        else
+            System.out.println("Hubo un error");
+    }
+
 }

@@ -1,268 +1,171 @@
 import { ViewConfig } from '@vaadin/hilla-file-router/types.js';
-import {
-  Button, Dialog, Grid, GridColumn, GridItemModel,
-  NumberField, PasswordField, TextField, VerticalLayout
-} from '@vaadin/react-components';
+import { Button, ComboBox, DatePicker, Dialog, Grid, GridColumn, GridItemModel, NumberField, PasswordField, TextField, VerticalLayout } from '@vaadin/react-components';
 import { Notification } from '@vaadin/react-components/Notification';
-import PersonaService from 'Frontend/generated/PersonaService';
+import { ArtistaService, PersonaService, TaskService } from 'Frontend/generated/endpoints';
 import { useSignal } from '@vaadin/hilla-react-signals';
 import handleError from 'Frontend/views/_ErrorHandler';
 import { Group, ViewToolbar } from 'Frontend/components/ViewToolbar';
+
 import { useDataProvider } from '@vaadin/hilla-react-crud';
-import { useState } from 'react';
+import Artista from 'Frontend/generated/org/unl/music/base/models/Artista';
+import { useCallback, useEffect, useState } from 'react';
 
 export const config: ViewConfig = {
   title: 'Registro de personas',
   menu: {
-    icon: 'vaadin:user',
+    icon: 'vaadin:clipboard-check',
     order: 1,
     title: 'Registro de personas',
   },
 };
 
-type Persona = {
-  id: string;
-  usuario: string;
-  edad: string;
-  correo: string;
+
+type ArtistaEntryFormProps = {
+  onArtistaCreated?: () => void;
 };
 
-function PersonaEntryForm({ onPersonaCreated }: { onPersonaCreated?: () => void }) {
+type ArtistaEntryFormPropsUpdate = ()=> {
+  onArtistaUpdated?: () => void;
+};
+//GUARDAR ARTISTA
+function ArtistaEntryForm(props: ArtistaEntryFormProps) {
   const usuario = useSignal('');
   const edad = useSignal('');
   const correo = useSignal('');
   const clave = useSignal('');
-  const dialogOpened = useSignal(false);
-
-  const createPersona = async () => {
+  const createArtista = async () => {
     try {
-      if (
-        usuario.value.trim() &&
-        edad.value.trim() &&
-        correo.value.trim() &&
-        clave.value.trim()
-      ) {
-        await PersonaService.save(
-          usuario.value,
-          correo.value,
-          clave.value,
-          parseInt(edad.value)
-        );
-        if (onPersonaCreated) onPersonaCreated();
+      if (usuario.value.trim().length > 0 && edad.value.trim().length > 0
+        && correo.value.trim().length > 0 && clave.value.trim().length > 0) {
+        await PersonaService.save(usuario.value, correo.value, clave.value, parseInt(edad.value));
+        if (props.onArtistaCreated) {
+          props.onArtistaCreated();
+        }
         usuario.value = '';
         edad.value = '';
         correo.value = '';
         clave.value = '';
         dialogOpened.value = false;
-        Notification.show('Persona registrada correctamente', { 
-          duration: 3000, 
-          position: 'bottom-end', 
-          theme: 'success' 
-        });
+        Notification.show('Persona creado', { duration: 5000, position: 'bottom-end', theme: 'success' });
       } else {
-        Notification.show('Todos los campos son requeridos', { 
-          duration: 3000, 
-          position: 'top-center', 
-          theme: 'error' 
-        });
+        Notification.show('No se pudo crear, faltan datos', { duration: 5000, position: 'top-center', theme: 'error' });
       }
+
     } catch (error) {
+      console.log(error);
       handleError(error);
     }
   };
-
+  
+  
+  const dialogOpened = useSignal(false);
   return (
     <>
       <Dialog
         modeless
-        headerTitle="Nueva persona"
+        headerTitle="Nuevo artista"
         opened={dialogOpened.value}
         onOpenedChanged={({ detail }) => {
           dialogOpened.value = detail.value;
         }}
         footer={
           <>
-            <Button onClick={() => (dialogOpened.value = false)}>Cancelar</Button>
-            <Button onClick={createPersona} theme="primary">Registrar</Button>
+            <Button
+              onClick={() => {
+                dialogOpened.value = false;
+              }}
+            >
+              Candelar
+            </Button>
+            <Button onClick={createArtista} theme="primary">
+              Registrar
+            </Button>
+            
           </>
         }
       >
         <VerticalLayout style={{ alignItems: 'stretch', width: '18rem', maxWidth: '100%' }}>
-          <TextField 
-            label="Nombre de usuario" 
-            required
-            value={usuario.value} 
-            onValueChanged={e => (usuario.value = e.detail.value)} 
+          <TextField label="Nombre del usuario" 
+            placeholder="Ingrese el usuario"
+            aria-label="Nombre del usuario"
+            value={usuario.value}
+            onValueChanged={(evt) => (usuario.value = evt.detail.value)}
           />
-          <NumberField 
-            label="Edad" 
-            required
-            min={1}
-            value={edad.value} 
-            onValueChanged={e => (edad.value = e.detail.value)} 
+          <NumberField  label="Edad del usuario" 
+            placeholder="Ingrese la edad del usuario"
+            aria-label="Edad del usuario"
+            value={edad.value}
+            onValueChanged={(evt) => (edad.value = evt.detail.value)}
           />
-          <TextField 
-            label="Correo electrónico" 
-            required
-            value={correo.value} 
-            onValueChanged={e => (correo.value = e.detail.value)} 
+          <TextField label="Correo del usuario" 
+            placeholder="Ingrese el Correo del usuario"
+            aria-label="Correo del usuario"
+            value={correo.value}
+            onValueChanged={(evt) => (correo.value = evt.detail.value)}
           />
-          <PasswordField 
-            label="Contraseña" 
-            required
-            value={clave.value} 
-            onValueChanged={e => (clave.value = e.detail.value)} 
+          <PasswordField label="Clave del usuario" 
+            placeholder="Ingrese la clave del usuario"
+            aria-label="Clave del usuario"
+            value={clave.value}
+            onValueChanged={(evt) => (clave.value = evt.detail.value)}
           />
+          
         </VerticalLayout>
       </Dialog>
-      <Button onClick={() => (dialogOpened.value = true)}>
-        Agregar persona
-      </Button>
+      <Button
+            onClick={() => {
+              dialogOpened.value = true;
+            }}
+          >
+            Agregar
+          </Button>
     </>
   );
 }
 
-function PersonaEditForm({
-  persona,
-  onPersonaUpdated,
-  onClose,
-}: {
-  persona: Persona | null;
-  onPersonaUpdated?: () => void;
-  onClose: () => void;
-}) {
-  const usuario = useSignal(persona?.usuario ?? '');
-  const edad = useSignal(persona?.edad ?? '');
-  const correo = useSignal(persona?.correo ?? '');
-  const clave = useSignal('');
 
-  const updatePersona = async () => {
-    try {
-      if (
-        persona &&
-        usuario.value.trim() &&
-        edad.value.trim() &&
-        correo.value.trim() &&
-        clave.value.trim()
-      ) {
-        await PersonaService.update(
-          parseInt(persona.id),
-          usuario.value,
-          persona.correo,
-          clave.value,
-          parseInt(edad.value)
-        );
-        if (onPersonaUpdated) onPersonaUpdated();
-        onClose();
-        Notification.show('Datos actualizados correctamente', { 
-          duration: 3000, 
-          position: 'bottom-end', 
-          theme: 'success' 
-        });
-      } else {
-        Notification.show('Todos los campos son requeridos', { 
-          duration: 3000, 
-          position: 'top-center', 
-          theme: 'error' 
-        });
-      }
-    } catch (error) {
-      handleError(error);
-    }
-  };
 
-  return (
-    <Dialog
-      modeless
-      headerTitle="Editar persona"
-      opened={!!persona}
-      onOpenedChanged={({ detail }) => {
-        if (!detail.value) onClose();
-      }}
-      footer={
-        <>
-          <Button onClick={onClose}>Cancelar</Button>
-          <Button onClick={updatePersona} theme="primary">Actualizar</Button>
-        </>
-      }
-    >
-      <VerticalLayout style={{ alignItems: 'stretch', width: '18rem', maxWidth: '100%' }}>
-        <TextField 
-          label="Nombre de usuario" 
-          required
-          value={usuario.value} 
-          onValueChanged={e => (usuario.value = e.detail.value)} 
-        />
-        <NumberField 
-          label="Edad" 
-          required
-          min={1}
-          value={edad.value} 
-          onValueChanged={e => (edad.value = e.detail.value)} 
-        />
-        <TextField 
-          label="Correo electrónico" 
-          value={correo.value}
-          readonly
-          helperText="El correo no se puede modificar"
-        />
-        <PasswordField 
-          label="Nueva contraseña" 
-          required
-          value={clave.value} 
-          onValueChanged={e => (clave.value = e.detail.value)} 
-          helperText="Ingrese la nueva contraseña"
-        />
-      </VerticalLayout>
-    </Dialog>
-  );
-}
 
-export default function PersonaView() {
-  const [personaEdit, setPersonaEdit] = useState<Persona | null>(null);
+//LISTA DE ARTISTAS
+export default function ArtistaView() {
   
   const dataProvider = useDataProvider({
-    list: async () => (await PersonaService.listaPersonas()) || [],
+    list: () => PersonaService.listaPersonas(),
   });
 
-  function indexIndex({ model }: { model: GridItemModel<Persona> }) {
-    return <span>{model.index + 1}</span>;
+  function indexLink({ item}: { item: Artista }) {
+   
+    return (
+      <span>
+        <Button>EDITAR</Button>
+      </span>
+    );
   }
 
-  function acciones({ item }: { item: Persona }) {
+  function indexIndex({model}:{model:GridItemModel<Artista>}) {
     return (
-      <Button 
-        theme="primary"
-        onClick={() => setPersonaEdit(item)}
-      >
-        Editar
-      </Button>
+      <span>
+        {model.index + 1} 
+      </span>
     );
   }
 
   return (
+
     <main className="w-full h-full flex flex-col box-border gap-s p-m">
-      <ViewToolbar title="Registro de personas">
+
+      <ViewToolbar title="Lista de personas">
         <Group>
-          <PersonaEntryForm onPersonaCreated={dataProvider.refresh} />
+          <ArtistaEntryForm onArtistaCreated={dataProvider.refresh}/>
         </Group>
       </ViewToolbar>
-
       <Grid dataProvider={dataProvider.dataProvider}>
-        <GridColumn renderer={indexIndex} header="#" width="70px" textAlign="center" />
-        <GridColumn path="usuario" header="Usuario" />
-        <GridColumn path="edad" header="Edad" width="100px" textAlign="center" />
-        <GridColumn path="correo" header="Correo electrónico" />
-        <GridColumn header="Acciones" width="120px" renderer={acciones} />
+        <GridColumn  renderer={indexIndex} header="Nro" />
+        <GridColumn path="usuario" header="Nombre del Usuario" />
+        <GridColumn path="edad" header="Edad" />
+        <GridColumn path="correo" header="Correo" />
+        <GridColumn header="Acciones" renderer={indexLink}/>
       </Grid>
-
-      {personaEdit && (
-        <PersonaEditForm
-          persona={personaEdit}
-          onPersonaUpdated={dataProvider.refresh}
-          onClose={() => setPersonaEdit(null)}
-        />
-      )}
     </main>
   );
 }

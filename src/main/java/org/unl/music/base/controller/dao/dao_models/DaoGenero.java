@@ -1,39 +1,65 @@
 package org.unl.music.base.controller.dao.dao_models;
 
 import org.unl.music.base.models.Genero;
-import org.unl.music.base.controller.data_struct.list.LinkedList;
 
-public class DaoGenero {
-    private static final LinkedList<Genero> generos = new LinkedList<>();
-    private static Integer lastId = 0;
+import org.unl.music.base.controller.dao.AdapterDao;
 
-    public LinkedList<Genero> listAll() {
-        return generos;
+public class DaoGenero extends AdapterDao<Genero> {
+    private Genero obj;
+
+    public DaoGenero() {
+        super(Genero.class);
+        // TODO Auto-generated constructor stub
     }
 
-    public Genero findById(Integer id) {
-        if (id == null) return null;
-        for (int i = 0; i < generos.getLength(); i++) {
-            Genero genero = generos.get(i);
-            if (genero.getId().equals(id)) {
-                return genero;
-            }
-        }
-        return null;
+    public Genero getObj() {
+        if (obj == null)
+            this.obj = new Genero();
+        return this.obj;
     }
 
-    public Boolean save(Genero genero) {
+    public void setObj(Genero obj) {
+        this.obj = obj;
+    }
+
+    public Boolean save() {
         try {
-            lastId++;
-            genero.setId(lastId);
-            generos.add(genero);
+            obj.setId(listAll().getLength()+1);
+            this.persist(obj);
             return true;
         } catch (Exception e) {
+            //TODO
             return false;
+            // TODO: handle exception
         }
     }
 
-    public Genero[] toArray() {
-        return generos.toArray();
+    public Boolean update(Integer pos) {
+        try {
+            this.update(obj, pos);
+            return true;
+        } catch (Exception e) {
+            //TODO
+            return false;
+            // TODO: handle exception
+        }
     }
+
+    public static void main(String[] args) {
+        DaoGenero da = new DaoGenero();
+        
+        da.getObj().setNombre("Balada");
+        
+        if (da.save())
+            System.out.println("GUARDADO");
+        else
+            System.out.println("Hubo un error");
+        da.setObj(null);
+        da.getObj().setNombre("Pop");
+        if (da.save())
+            System.out.println("GUARDADO");
+        else
+            System.out.println("Hubo un error");
+    }
+
 }
